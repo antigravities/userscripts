@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ScreenshotFilter
 // @namespace    https://antigraviti.es/
-// @version      0.3
+// @version      0.4
 // @description  Hide Steam screenshots in the activity feed from games you specify
 // @author       Alexandra "antigravities" F.
 // @match        *://steamcommunity.com/*/home*
@@ -49,7 +49,6 @@
     }
 
     function extAntigravities_FilterRemoveGame(game){
-        GM_log(game);
         extAntigravities_FilterGames.splice(extAntigravities_FilterGames.indexOf(game), 1);
         GM_setValue("extAntigravities_Filter", JSON.stringify(extAntigravities_FilterGames));
         history.go(0);
