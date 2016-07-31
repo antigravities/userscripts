@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         ScreenshotFilter
 // @namespace    https://antigraviti.es/
-// @version      0.2
+// @version      0.3
 // @description  Hide Steam screenshots in the activity feed from games you specify
 // @author       Alexandra "antigravities" F.
 // @match        *://steamcommunity.com/*/home*
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @updateURL    https://github.com/antigravities/userscripts/raw/master/screenshotfilter.user.js
 // ==/UserScript==
 
 (function(){
