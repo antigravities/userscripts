@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sub Adder
 // @namespace    https://alexandra.moe/
-// @version      0.2
+// @version      0.3
 // @description  Add subs on SteamDB or the Steam store to your Barter.vg library with one click
 // @author       Alexandra Frock <https://alexandra.moe/>
 // @match        *://store.steampowered.com/sub/*
