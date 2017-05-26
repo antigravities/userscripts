@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Researched
 // @namespace    https://alexandra.moe/
-// @version      0.1
+// @version      0.2
 // @description  Better searching for Barter.vg
 // @author       Alexandra Frock <https://alexandra.moe>
 // @match        https://barter.vg/*
@@ -10,7 +10,6 @@
 // ==/UserScript==
 
 (function() {
-    'use strict';
 
     var fuse = document.createElement("script");
     fuse.src = "https://cdnjs.cloudflare.com/ajax/libs/fuse.js/2.6.1/fuse.min.js";
@@ -29,6 +28,9 @@
         var to = null;
         var blur = null;
         var loaded = false;
+        var sb2 = null;
+        var ins = null;
+        var loadingTriggeredBySearchBox = true;
 
         function getItems(){
             var xhr = new XMLHttpRequest();
@@ -50,67 +52,129 @@
                 fuse = new Fuse(items, fopts);
 
                 q.removeAttribute("disabled");
-                q.focus();
+                
+                if( loadingTriggeredBySearchBox ) q.focus();
+                else ins.focus();
+
+                if( ins !== null ){
+                    ins.removeAttribute("disabled");
+                }
+
                 loaded = true;
-                sb.innerHTML = "Start typing to search " + items.length + " items";
+                if( loadingTriggeredBySearchBox ) sb.innerHTML = "Start typing to search " + items.length + " items";
+                else sb2.innerHTML = "Start typing to search " + items.length + " items";
             });
             xhr.responseType = "document";
             xhr.open("GET", "https://barter.vg/search?q=view+all+Steam");
             xhr.send();
         }
 
-        document.getElementById("q").addEventListener("focus", function(){
+        function getAppropriateElement(e){
+            if( e.srcElement.tagName == "TEXTAREA" ) return sb2;
+            else return sb;
+        }
+
+        function isFromTextArea(e){
+            return e.srcElement.tagName == "TEXTAREA";
+        }
+
+        function focus(e){
             if( blur !== null ) clearTimeout(blur);
 
-            sb.style.display = "block";
-            document.getElementById("signin").style.display = "none";
+            var sb = getAppropriateElement(e);
+
+            if( ! isFromTextArea(e) ){
+                document.getElementById("signin").style.display = "none";
+                sb.style.display = "block";
+            }
 
             if( items.length === 0 && ! lock ){
                 q.disabled = "true";
+                if( ins !== null ) ins.disabled = "true";
                 sb.innerText = "Indexing, please wait...";
                 lock = true;
+                loadingTriggeredBySearchBox = ! isFromTextArea(e);
                 getItems();
             }
 
-        });
+        }
 
-        document.getElementById("q").addEventListener("blur", function(){
+        function blurF(e){
             if( ! loaded ) return;
+
             setTimeout(function(){
                 sb.style.display = "none";
                 document.getElementById("signin").style.display = "block";
             }, 100);
-        });
+        }
 
-        q.addEventListener("keyup", function(){
+        rebuild = function(x){
+            var y = ins.value.split("\n");
+            y[y.length-1]=decodeURIComponent(x);
+            ins.value = y.join("\n");
+        };
+        
+        function keyup(e){
             if( to !== null ) clearTimeout(to);
 
-            if( q.value.trim() === "" ){
-                sb.innerText = "Start typing to search " + items.length + " items";
+            var srch = "";
+            
+            if( isFromTextArea(e) ){
+                var asplod = ins.value.trim().split("\n");
+                srch = asplod[asplod.length-1];
+            } else {
+                srch = q.value.trim();
+            }
+            
+            if( srch === "" ){
+                getAppropriateElement(e).innerText = "Start typing to search " + items.length + " items";
                 return;
             }
 
-            sb.innerText = "Searching...";
+            getAppropriateElement(e).innerText = "Searching...";
 
             to = setTimeout(function(){
 
-                var search = fuse.search(q.value.trim());
+                var search = fuse.search(srch);
                 var html = search.length + " results<br>";
 
                 var limit = search.length <= 10 ? search.length : 10;
 
                 for( var i=0; i<limit; i++) {
-                    html+="<a href='https://barter.vg/i/" + search[i].b + "'>" + search[i].n + "</a><br>";
+                    if( ! isFromTextArea(e) ) html+="<a href='https://barter.vg/i/" + search[i].b + "'>" + search[i].n + "</a><br>";
+                    else html+="<a onClick=\"rebuild(\'" + encodeURIComponent(search[i].n) + "\');\">" + search[i].n + "</a><br>";
                 }
 
-                if( search.length > 10 ){
+                if( search.length > 10 && ! isFromTextArea(e) ){
                     html+="<a href='https://barter.vg/search?q=" + encodeURIComponent(q.value.trim()) + "'>and " + (search.length-10) + " more...</a>";
                 }
 
-                sb.innerHTML = html;
+                getAppropriateElement(e).innerHTML = html;
 
                 to = null;
             }, 500);
-        });
+        }
+
+        q.addEventListener("focus", focus);
+        q.addEventListener("blur", blurF);
+        q.addEventListener("keyup", keyup);
+
+        var webloc = window.location.toString().split("/");
+
+        if( webloc.length >= 7 && webloc[6] == "e" ){
+            ins = document.getElementsByTagName("textarea")[0];
+
+            ins.addEventListener("focus", focus);
+            //ins.addEventListener("blur", blurF);
+            ins.addEventListener("keyup", keyup);
+
+            sb2 = document.createElement("div");
+            sb2.style.align = "center";
+            sb2.style["background-color"] = "white";
+            sb2.style.opacity = "0.9";
+            sb2.style.float = "left";
+
+            ins.parentNode.insertBefore(sb2, ins.nextSibling);
+        }
     });
 })();
