@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name         Researched
 // @namespace    https://alexandra.moe/
-// @version      0.2
+// @version      0.3
 // @description  Better searching for Barter.vg
 // @author       Alexandra Frock <https://alexandra.moe>
 // @match        https://barter.vg/*
-// @grant        none
+// @grant        unsafeWindow
 // @updateURL    https://github.com/antigravities/userscripts/raw/master/researched.user.js
 // ==/UserScript==
 
 (function() {
+
+    var localStorage = unsafeWindow.localStorage;
 
     var fuse = document.createElement("script");
     fuse.src = "https://cdnjs.cloudflare.com/ajax/libs/fuse.js/2.6.1/fuse.min.js";
@@ -31,8 +33,49 @@
         var sb2 = null;
         var ins = null;
         var loadingTriggeredBySearchBox = true;
+        var cache = 0;
+
+        if( localStorage.getItem("cache") ){
+            cache = localStorage.cache;
+            items = JSON.parse(localStorage.items);
+        }
+
+        function init(){
+            var fopts = {
+                shouldSort: true,
+                threshold: 0.3,
+                maxPatternLength: 32,
+                minMatchCharLength: 2,
+                keys: [ "n", "b" ]
+            };
+
+            fuse = new Fuse(items, fopts);
+
+            console.log(fuse);
+
+            q.removeAttribute("disabled");
+
+            if( loadingTriggeredBySearchBox ) q.focus();
+            else ins.focus();
+
+            if( ins !== null ){
+                ins.removeAttribute("disabled");
+            }
+
+            loaded = true;
+            if( loadingTriggeredBySearchBox ) sb.innerHTML = "Start typing to search " + items.length + " items";
+            else sb2.innerHTML = "Start typing to search " + items.length + " items";
+        }
 
         function getItems(){
+
+            console.log(Date.now());
+            if( cache > Date.now() ){
+                return init();
+            } else {
+                items = [];
+            }
+
             var xhr = new XMLHttpRequest();
             xhr.addEventListener("load", function(){
                 Array.prototype.slice.call(this.responseXML.getElementsByClassName("searchResults")[0].getElementsByTagName("li")).forEach(function(v, k){
@@ -41,28 +84,11 @@
                     items.push({n: name, b: bid});
                 });
 
-                var fopts = {
-                    shouldSort: true,
-                    threshold: 0.3,
-                    maxPatternLength: 32,
-                    minMatchCharLength: 2,
-                    keys: [ "n", "b" ]
-                };
+                localStorage.cache = Date.now() + 8.64e+7;
+                localStorage.items = JSON.stringify(items);
 
-                fuse = new Fuse(items, fopts);
 
-                q.removeAttribute("disabled");
-                
-                if( loadingTriggeredBySearchBox ) q.focus();
-                else ins.focus();
-
-                if( ins !== null ){
-                    ins.removeAttribute("disabled");
-                }
-
-                loaded = true;
-                if( loadingTriggeredBySearchBox ) sb.innerHTML = "Start typing to search " + items.length + " items";
-                else sb2.innerHTML = "Start typing to search " + items.length + " items";
+                init();
             });
             xhr.responseType = "document";
             xhr.open("GET", "https://barter.vg/search?q=view+all+Steam");
@@ -88,7 +114,7 @@
                 sb.style.display = "block";
             }
 
-            if( items.length === 0 && ! lock ){
+            if( ! lock ){
                 q.disabled = "true";
                 if( ins !== null ) ins.disabled = "true";
                 sb.innerText = "Indexing, please wait...";
@@ -113,19 +139,19 @@
             y[y.length-1]=decodeURIComponent(x);
             ins.value = y.join("\n");
         };
-        
+
         function keyup(e){
             if( to !== null ) clearTimeout(to);
 
             var srch = "";
-            
+
             if( isFromTextArea(e) ){
                 var asplod = ins.value.trim().split("\n");
                 srch = asplod[asplod.length-1];
             } else {
                 srch = q.value.trim();
             }
-            
+
             if( srch === "" ){
                 getAppropriateElement(e).innerText = "Start typing to search " + items.length + " items";
                 return;
