@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Researched
 // @namespace    https://alexandra.moe/
-// @version      0.3
+// @version      0.4
 // @description  Better searching for Barter.vg
 // @author       Alexandra Frock <https://alexandra.moe>
 // @match        https://barter.vg/*
@@ -51,9 +51,9 @@
 
             fuse = new Fuse(items, fopts);
 
-            console.log(fuse);
-
             q.removeAttribute("disabled");
+            
+            q.setAttribute("autocomplete", "off");
 
             if( loadingTriggeredBySearchBox ) q.focus();
             else ins.focus();
@@ -68,8 +68,6 @@
         }
 
         function getItems(){
-
-            console.log(Date.now());
             if( cache > Date.now() ){
                 return init();
             } else {
